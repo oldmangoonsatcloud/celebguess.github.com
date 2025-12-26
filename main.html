@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Star Guess</title>
+    <style>
+        :root {
+            --primary-blue: #007AFF;
+            --primary-green: #34C759;
+            --primary-red: #FF3B30;
+            --bg-color: #F2F2F7;
+            --card-bg: #FFFFFF;
+            --text-main: #000000;
+            --text-sub: #8E8E93;
+            --shadow: 0 4px 20px rgba(0,0,0,0.08);
+            --radius-btn: 20px;
+            --radius-card: 28px;
+            --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            font-family: var(--font-stack);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            height: 100dvh; 
+            width: 100vw;
+            overflow: hidden;
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Screens --- */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            padding-top: calc(20px + env(safe-area-inset-top));
+            padding-bottom: calc(20px + env(safe-area-inset-bottom));
+            
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            transform: scale(0.98);
+            z-index: 1;
+        }
+
+        .screen.active {
+            opacity: 1;
+            pointer-events: all;
+            transform: scale(1);
+            z-index: 10;
+        }
+
+        /* --- Content Constraints (Desktop Friendliness) --- */
+        .content-wrapper {
+            width: 100%;
+            max-width: 500px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* --- Main Menu --- */
+        #main-menu .content-wrapper {
+            justify-content: center;
+        }
+
+        .logo-area {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .emoji-icon {
+            font-size: 5rem;
+            margin-bottom: 10px;
+            display: inline-block;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1));
+            animation: float 3s ease-in-out infinite;
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: -0.03em;
+            color: #1C1C1E;
+        }
+
+        p.slogan {
+            font-size: 1.1rem;
+            color: var(--text-sub);
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+
+        .btn-group {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .btn {
+            background: var(--card-bg);
+            border: none;
+            padding: 22px 28px;
+            width: 100%;
+            border-radius: var(--radius-btn);
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary-blue);
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.1s, background-color 0.2s;
+        }
+
+        .btn:active {
+            transform: scale(0.96);
+            background-color: #E5E5EA;
+        }
+        
+        .btn span.count {
+            background: #F2F2F7;
+            color: var(--text-sub);
+            padding: 6px 14px;
+            border-radius: 14px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        /* --- Countdown Screen --- */
+        #countdown-screen {
+            background-color: var(--primary-blue);
+            color: white;
+        }
+        
+        .countdown-number {
+            font-size: 12rem;
+            font-weight: 800;
+            line-height: 1;
+            margin: 20px 0;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .instruction-text {
+            font-size: 2rem;
+            font-weight: 700;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        /* --- Game Screen --- */
+        #game-screen .content-wrapper {
+            justify-content: flex-start;
+        }
+
+        .timer-bar-container {
+            width: 100%;
+            height: 8px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 10px;
+            margin-bottom: 20px;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .timer-bar {
+            height: 100%;
+            background: var(--primary-blue);
+            width: 100%;
+            border-radius: 10px;
+            transform-origin: left;
+        }
+        .timer-bar.warning { background: var(--primary-red); }
+
+        .card-container {
+            background: var(--card-bg);
+            border-radius: var(--radius-card);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            flex-grow: 1;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            max-height: 75vh; 
+        }
+
+        .celeb-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0; left: 0;
+            /* Optional: Add a subtle placeholder background while waiting for local image to load */
+            background-color: #E0E0E0; 
+        }
+
+        .celeb-name-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(255,255,255,0.90);
+            padding: 30px 20px;
+            text-align: center;
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-top: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .celeb-name-text {
+            display: block;
+            font-size: 2.5rem;
+            font-weight: 800;
+            line-height: 1.1;
+            color: #000;
+        }
+
+        .game-controls {
+            flex-shrink: 0;
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            height: 100px;
+        }
+
+        .control-btn {
+            flex: 1;
+            border: none;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            color: white;
+            transition: transform 0.1s;
+        }
+        .control-btn:active { transform: scale(0.92); }
+        .control-btn svg { width: 45px; height: 45px; stroke-width: 3.5px; }
+        
+        .btn-wrong { background-color: var(--primary-red); }
+        .btn-correct { background-color: var(--primary-green); }
+
+        /* --- Results Screen --- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 25px;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .stat-num { display: block; font-size: 3rem; font-weight: 800; margin-bottom: 5px; }
+        .stat-lbl { font-size: 0.9rem; font-weight: 700; color: var(--text-sub); text-transform: uppercase; }
+        .stat-correct { color: var(--primary-green); }
+        .stat-wrong { color: var(--primary-red); }
+
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(5deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+
+        @media (max-height: 700px) {
+            h1 { font-size: 2.2rem; }
+            .btn { padding: 18px 20px; }
+            .countdown-number { font-size: 8rem; }
+            .game-controls { height: 80px; }
+            .celeb-name-text { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="main-menu" class="screen active">
+        <div class="content-wrapper">
+            <div class="logo-area">
+                <div class="emoji-icon">🎭</div>
+                <h1>Star Guess</h1>
+                <p class="slogan">Hold phone to forehead.<br>Friends act, you guess!</p>
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn" onclick="startGame('short')">
+                    Quick <span class="count">10 Cards</span>
+                </button>
+                <button class="btn" onclick="startGame('medium')">
+                    Standard <span class="count">20 Cards</span>
+                </button>
+                <button class="btn" onclick="startGame('long')">
+                    Marathon <span class="count">40 Cards</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="countdown-screen" class="screen">
+        <div class="content-wrapper">
+            <div class="instruction-text">Place on<br>Forehead!</div>
+            <div id="countdown-display" class="countdown-number">10</div>
+            <div class="instruction-text" style="font-size: 1.2rem; opacity: 0.8; font-weight: 500;">Starting soon...</div>
+        </div>
+    </div>
+
+    <div id="game-screen" class="screen">
+        <div class="content-wrapper">
+            <div class="timer-bar-container">
+                <div id="round-timer-bar" class="timer-bar"></div>
+            </div>
+
+            <div class="card-container">
+                <img id="celeb-img" class="celeb-image" src="" alt="Celebrity Photo">
+                <div class="celeb-name-overlay">
+                    <span id="celeb-name" class="celeb-name-text">Loading...</span>
+                    <span style="font-size: 0.85rem; color: var(--text-sub); text-transform: uppercase; letter-spacing: 1px; font-weight:600; margin-top:5px; display:block;">The Celebrity</span>
+                </div>
+            </div>
+
+            <div class="game-controls">
+                <button class="control-btn btn-wrong" onclick="handleResult(false)">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+                <button class="control-btn btn-correct" onclick="handleResult(true)">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="results-screen" class="screen">
+        <div class="content-wrapper">
+            <div class="logo-area" style="margin-bottom: 30px;">
+                <h1>Round Over!</h1>
+                <p class="slogan" style="margin:0;">Here is how you did</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span id="score-correct" class="stat-num stat-correct">0</span>
+                    <span class="stat-lbl">Correct</span>
+                </div>
+                <div class="stat-card">
+                    <span id="score-wrong" class="stat-num stat-wrong">0</span>
+                    <span class="stat-lbl">Passed</span>
+                </div>
+            </div>
+
+            <button class="btn" style="justify-content: center; background-color: var(--primary-blue); color: white;" onclick="goToMenu()">
+                Play Again
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- Data: Updated to use local filenames (all lowercase, no spaces, .png) ---
+        const celebritiesDB = [
+            { name: "Taylor Swift", file: "taylorswift.png" },
+            { name: "Ryan Reynolds", file: "ryanreynolds.png" },
+            { name: "Dwayne Johnson", file: "dwaynejohnson.png" },
+            { name: "Beyoncé", file: "beyonce.png" },
+            { name: "Leonardo DiCaprio", file: "leonardodicaprio.png" },
+            { name: "Kim Kardashian", file: "kimkardashian.png" },
+            { name: "Tom Cruise", file: "tomcruise.png" },
+            { name: "Ariana Grande", file: "arianagrande.png" },
+            { name: "Will Smith", file: "willsmith.png" },
+            { name: "Elon Musk", file: "elonmusk.png" },
+            { name: "Brad Pitt", file: "bradpitt.png" },
+            { name: "Angelina Jolie", file: "angelinajolie.png" },
+            { name: "Johnny Depp", file: "johnnydepp.png" },
+            { name: "Robert Downey Jr", file: "robertdowneyjr.png" },
+            { name: "Jennifer Aniston", file: "jenniferaniston.png" },
+            { name: "Kanye West", file: "kanyewest.png" },
+            { name: "Justin Bieber", file: "justinbieber.png" },
+            { name: "Oprah Winfrey", file: "oprahwinfrey.png" },
+            { name: "Drake", file: "drake.png" },
+            { name: "Selena Gomez", file: "selenagomez.png" },
+            { name: "Keanu Reeves", file: "keanureeves.png" },
+            { name: "Rihanna", file: "rihanna.png" },
+            { name: "Chris Hemsworth", file: "chrishemsworth.png" },
+            { name: "Scarlett Johansson", file: "scarlettjohansson.png" },
+            { name: "Tom Hanks", file: "tomhanks.png" },
+            { name: "Adele", file: "adele.png" },
+            { name: "Zendaya", file: "zendaya.png" },
+            { name: "Harry Styles", file: "harrystyles.png" },
+            { name: "Lady Gaga", file: "ladygaga.png" },
+            { name: "Lionel Messi", file: "lionelmessi.png" },
+            { name: "Cristiano Ronaldo", file: "cristianoronaldo.png" },
+            { name: "Billie Eilish", file: "billieeilish.png" },
+            { name: "Snoop Dogg", file: "snoopdogg.png" },
+            { name: "Eminem", file: "eminem.png" },
+            { name: "Kevin Hart", file: "kevinhart.png" },
+            { name: "Margot Robbie", file: "margotrobbie.png" },
+            { name: "Tom Holland", file: "tomholland.png" },
+            { name: "Jennifer Lopez", file: "jenniferlopez.png" },
+            { name: "Shakira", file: "shakira.png" },
+            { name: "Gordon Ramsay", file: "gordonramsay.png" }
+        ];
+
+        let gameQueue = [];
+        let currentIndex = 0;
+        let score = { correct: 0, wrong: 0 };
+        let timers = { countdown: null, round: null };
+        const ROUND_TIME = 30; 
+        const COUNTDOWN_TIME = 10; 
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function goToMenu() {
+            resetGame();
+            showScreen('main-menu');
+        }
+
+        function resetGame() {
+            clearInterval(timers.countdown);
+            clearInterval(timers.round);
+            score = { correct: 0, wrong: 0 };
+            currentIndex = 0;
+            gameQueue = [];
+        }
+
+        function shuffle(array) {
+            return array.sort(() => Math.random() - 0.5);
+        }
+
+        function startGame(mode) {
+            let count = 10;
+            if (mode === 'medium') count = 20;
+            if (mode === 'long') count = 40;
+
+            const shuffled = shuffle([...celebritiesDB]);
+            gameQueue = shuffled.slice(0, Math.min(count, shuffled.length));
+            
+            startCountdown();
+        }
+
+        function startCountdown() {
+            showScreen('countdown-screen');
+            let timeLeft = COUNTDOWN_TIME;
+            const display = document.getElementById('countdown-display');
+            display.innerText = timeLeft;
+
+            timers.countdown = setInterval(() => {
+                timeLeft--;
+                display.innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timers.countdown);
+                    enterGamePhase();
+                }
+            }, 1000);
+        }
+
+        function enterGamePhase() {
+            showScreen('game-screen');
+            loadCard();
+        }
+
+        function loadCard() {
+            if (currentIndex >= gameQueue.length) {
+                endGame();
+                return;
+            }
+
+            const celeb = gameQueue[currentIndex];
+            
+            document.getElementById('celeb-name').innerText = celeb.name;
+            
+            // --- CRITICAL CHANGE: Use local file path ---
+            // Assumes images are in a subfolder named 'images'
+            const localImagePath = `./images/${celeb.file}`; 
+            document.getElementById('celeb-img').src = localImagePath;
+
+            startRoundTimer();
+        }
+
+        function startRoundTimer() {
+            clearInterval(timers.round);
+            const bar = document.getElementById('round-timer-bar');
+            bar.classList.remove('warning');
+            
+            bar.style.transition = 'none';
+            bar.style.width = '100%';
+            void bar.offsetWidth;
+
+            bar.style.transition = `width ${ROUND_TIME}s linear`;
+            bar.style.width = '0%';
+
+            let timeLeft = ROUND_TIME;
+            
+            const warningCheck = setTimeout(() => {
+                bar.classList.add('warning');
+            }, (ROUND_TIME - 5) * 1000);
+
+            timers.round = setInterval(() => {
+                timeLeft--;
+                if (timeLeft <= 0) {
+                    clearTimeout(warningCheck);
+                    handleResult(false);
+                }
+            }, 1000);
+        }
+
+        function handleResult(isCorrect) {
+            clearInterval(timers.round);
+            if (isCorrect) score.correct++;
+            else score.wrong++;
+
+            currentIndex++;
+            loadCard();
+        }
+
+        function endGame() {
+            clearInterval(timers.round);
+            document.getElementById('score-correct').innerText = score.correct;
+            document.getElementById('score-wrong').innerText = score.wrong;
+            showScreen('results-screen');
+        }
+    </script>
+</body>
+</html>
